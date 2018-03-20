@@ -73,7 +73,10 @@ static long power_on_alarm;
 
 void set_power_on_alarm(long secs)
 {
-	power_on_alarm = secs;
+    if (secs == 0)
+	    power_on_alarm += 311040000;
+	else
+	    power_on_alarm = secs;
 }
 
 
@@ -509,6 +512,56 @@ static int alarm_resume(struct platform_device *pdev)
 	return 0;
 }
 
+static ssize_t rtc_time_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = 0;
+	struct rtc_time rtc_time;
+	struct rtc_wkalrm alarm;
+//	unsigned long flags;
+	long rtc_secs, alarm_secs;
+
+	//spin_lock_irqsave(&alarm_slock, flags);
+
+	rtc_read_time(alarm_rtc_dev, &rtc_time);
+	rtc_tm_to_time(&rtc_time, &rtc_secs);
+
+	rtc_read_alarm(alarm_rtc_dev, &alarm);
+	rtc_tm_to_time(&alarm.time, &alarm_secs);
+
+	//spin_unlock_irqrestore(&alarm_slock, flags);
+
+	sprintf(buf, "0x%lx,0x%lx\n", alarm_secs, rtc_secs);
+	ret = strlen(buf) + 1;
+	return ret;
+}
+
+static DEVICE_ATTR(alarmtimeinpmic, 0440, rtc_time_show, NULL);
+
+static struct kobject *android_alarm_kobj;
+static int alarm_sysfs_add(void)
+{
+	int ret;
+	android_alarm_kobj = kobject_create_and_add("android_alarm", NULL);
+
+	if (android_alarm_kobj == NULL) {
+		printk(KERN_ERR "Alarm register failed\n");
+		ret = -ENOMEM;
+		goto err;
+	}
+
+	ret = sysfs_create_file(android_alarm_kobj, &dev_attr_alarmtimeinpmic.attr);
+	if (ret) {
+		printk(KERN_ERR "Alarm alarmtimeinpmic sysfs create file failed\n");
+		goto err4;
+	}
+
+	return 0;
+err4:
+	kobject_del(android_alarm_kobj);
+err:
+	return ret;
+}
+
 static void alarm_shutdown(struct platform_device *dev)
 {
 	struct timespec wall_time;
@@ -666,6 +719,7 @@ static int __init alarm_driver_init(void)
 	if (err < 0)
 		goto err2;
 
+	alarm_sysfs_add();
 	return 0;
 
 err2:

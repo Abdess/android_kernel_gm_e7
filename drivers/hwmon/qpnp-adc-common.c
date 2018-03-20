@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -45,6 +45,91 @@
    their framework which is 0.1DegC. True resolution of 0.1DegC
    will result in the below table size to increase by 10 times */
 static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
+#if defined(CONFIG_GN_Q_BSP_BATTERY_10K_NTC_SUPPORT)
+    {-300,	 1645}, 
+    {-200,	 1558}, 
+    {-100,	 1442}, 
+    {0	 ,   1299}, 
+    {10	 ,   1286}, 
+    {20	 ,   1271}, 
+    {30	 ,   1255}, 
+    {40	 ,   1239}, 
+    {50	 ,   1221}, 
+    {60	 ,   1207}, 
+    {70	 ,   1191}, 
+    {80	 ,   1175}, 
+    {90	 ,   1158}, 
+    {100	,  1140}, 
+    {110	,  1125}, 
+    {120	,  1109}, 
+    {130	,  1093}, 
+    {140	,  1076}, 
+    {150	,  1057}, 
+    {160	,  1042}, 
+    {170	,  1026}, 
+    {180	,  1010}, 
+    {190	,  993 },
+    {200	,  975 },
+    {210	,  960 },
+    {220	,  944 },
+    {230	,  928 },
+    {240	,  911 },
+    {250	,  894 },
+    {260	,  879 },
+    {270	,  864 },
+    {280	,  849 },
+    {290	,  833 },
+    {300	,  816 },
+    {310	,  802 },
+    {320	,  788 },
+    {330	,  773 },
+    {340	,  758 },
+    {350	,  742 },
+    {360	,  729 },
+    {370	,  716 },
+    {380	,  702 },
+    {390	,  688 },
+    {400	,  673 },
+    {410	,  661 },
+    {420	,  649 },
+    {430	,  636 },
+    {440	,  623 },
+    {450	,  609 },
+    {460	,  598 },
+    {470	,  587 },
+    {480	,  575 },
+    {490	,  563 },
+    {500	,  551 },
+    {510	,  541 },
+    {520	,  530 },
+    {530	,  520 },
+    {540	,  509 },
+    {550	,  498 },
+    {560	,  489 },
+    {570	,  480 },
+    {580	,  470 },
+    {590	,  460 },
+    {600	,  451 },
+    {610	,  443 },
+    {620	,  434 },
+    {630	,  426 },
+    {640	,  418 },
+    {650	,  409 },
+    {660	,  402 },
+    {670	,  394 },
+    {680	,  387 },
+    {690	,  380 },
+    {700	,  372 },
+    {710	,  366 },
+    {720	,  359 },
+    {730	,  353 },
+    {740	,  346 },
+    {750	,  339 },
+    {760	,  334 },
+    {770	,  328 },
+    {780	,  322 },
+    {790	,  316 }
+#else
 	{-300,	1642},
 	{-200,	1544},
 	{-100,	1414},
@@ -128,6 +213,7 @@ static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
 	{770,	213},
 	{780,	208},
 	{790,	203}
+#endif
 };
 
 static const struct qpnp_vadc_map_pt adcmap_qrd_btm_threshold[] = {
@@ -620,7 +706,9 @@ int32_t qpnp_adc_scale_batt_therm(struct qpnp_vadc_chip *chip,
 
 	bat_voltage = qpnp_adc_scale_ratiometric_calib(adc_code,
 			adc_properties, chan_properties);
-
+    
+	pr_debug("bat_voltage = %lld\n", bat_voltage);
+	
 	return qpnp_adc_map_temp_voltage(
 			adcmap_btm_threshold,
 			ARRAY_SIZE(adcmap_btm_threshold),
@@ -985,6 +1073,92 @@ int32_t qpnp_vadc_check_result(int32_t *data)
 	return 0;
 }
 EXPORT_SYMBOL(qpnp_vadc_check_result);
+
+int qpnp_adc_get_revid_version(struct device *dev)
+{
+	struct pmic_revid_data *revid_data;
+	struct device_node *revid_dev_node;
+
+	revid_dev_node = of_parse_phandle(dev->of_node,
+						"qcom,pmic-revid", 0);
+	if (!revid_dev_node) {
+		pr_debug("Missing qcom,pmic-revid property\n");
+		return -EINVAL;
+	}
+
+	revid_data = get_revid_data(revid_dev_node);
+	if (IS_ERR(revid_data)) {
+		pr_debug("revid error rc = %ld\n", PTR_ERR(revid_data));
+		return -EINVAL;
+	}
+
+	if ((revid_data->rev1 == PM8941_V3P1_REV1) &&
+		(revid_data->rev2 == PM8941_V3P1_REV2) &&
+		(revid_data->rev3 == PM8941_V3P1_REV3) &&
+		(revid_data->rev4 == PM8941_V3P1_REV4) &&
+		(revid_data->pmic_type == PM8941_V3P1_TYPE) &&
+		(revid_data->pmic_subtype == PM8941_V3P1_SUBTYPE))
+			return QPNP_REV_ID_8941_3_1;
+	else if ((revid_data->rev1 == PM8941_V3P0_REV1) &&
+		(revid_data->rev2 == PM8941_V3P0_REV2) &&
+		(revid_data->rev3 == PM8941_V3P0_REV3) &&
+		(revid_data->rev4 == PM8941_V3P0_REV4) &&
+		(revid_data->pmic_type == PM8941_V3P0_TYPE) &&
+		(revid_data->pmic_subtype == PM8941_V3P0_SUBTYPE))
+			return QPNP_REV_ID_8941_3_0;
+	else if ((revid_data->rev1 == PM8941_V2P0_REV1) &&
+		(revid_data->rev2 == PM8941_V2P0_REV2) &&
+		(revid_data->rev3 == PM8941_V2P0_REV3) &&
+		(revid_data->rev4 == PM8941_V2P0_REV4) &&
+		(revid_data->pmic_type == PM8941_V2P0_TYPE) &&
+		(revid_data->pmic_subtype == PM8941_V2P0_SUBTYPE))
+			return QPNP_REV_ID_8941_2_0;
+	else if ((revid_data->rev1 == PM8226_V2P2_REV1) &&
+		(revid_data->rev2 == PM8226_V2P2_REV2) &&
+		(revid_data->rev3 == PM8226_V2P2_REV3) &&
+		(revid_data->rev4 == PM8226_V2P2_REV4) &&
+		(revid_data->pmic_type == PM8226_V2P2_TYPE) &&
+		(revid_data->pmic_subtype == PM8226_V2P2_SUBTYPE))
+			return QPNP_REV_ID_8026_2_2;
+	else if ((revid_data->rev1 == PM8226_V2P1_REV1) &&
+		(revid_data->rev2 == PM8226_V2P1_REV2) &&
+		(revid_data->rev3 == PM8226_V2P1_REV3) &&
+		(revid_data->rev4 == PM8226_V2P1_REV4) &&
+		(revid_data->pmic_type == PM8226_V2P1_TYPE) &&
+		(revid_data->pmic_subtype == PM8226_V2P1_SUBTYPE))
+			return QPNP_REV_ID_8026_2_1;
+	else if ((revid_data->rev1 == PM8226_V2P0_REV1) &&
+		(revid_data->rev2 == PM8226_V2P0_REV2) &&
+		(revid_data->rev3 == PM8226_V2P0_REV3) &&
+		(revid_data->rev4 == PM8226_V2P0_REV4) &&
+		(revid_data->pmic_type == PM8226_V2P0_TYPE) &&
+		(revid_data->pmic_subtype == PM8226_V2P0_SUBTYPE))
+			return QPNP_REV_ID_8026_2_0;
+	else if ((revid_data->rev1 == PM8226_V1P0_REV1) &&
+		(revid_data->rev2 == PM8226_V1P0_REV2) &&
+		(revid_data->rev3 == PM8226_V1P0_REV3) &&
+		(revid_data->rev4 == PM8226_V1P0_REV4) &&
+		(revid_data->pmic_type == PM8226_V1P0_TYPE) &&
+		(revid_data->pmic_subtype == PM8226_V1P0_SUBTYPE))
+			return QPNP_REV_ID_8026_1_0;
+	else if ((revid_data->rev1 == PM8110_V1P0_REV1) &&
+		(revid_data->rev2 == PM8110_V1P0_REV2) &&
+		(revid_data->rev3 == PM8110_V1P0_REV3) &&
+		(revid_data->rev4 == PM8110_V1P0_REV4) &&
+		(revid_data->pmic_type == PM8110_V1P0_TYPE) &&
+		(revid_data->pmic_subtype == PM8110_V1P0_SUBTYPE))
+			return QPNP_REV_ID_8110_1_0;
+	else if ((revid_data->rev1 == PM8110_V2P0_REV1) &&
+		(revid_data->rev2 == PM8110_V2P0_REV2) &&
+		(revid_data->rev3 == PM8110_V2P0_REV3) &&
+		(revid_data->rev4 == PM8110_V2P0_REV4) &&
+		(revid_data->pmic_type == PM8110_V2P0_TYPE) &&
+		(revid_data->pmic_subtype == PM8110_V2P0_SUBTYPE))
+			return QPNP_REV_ID_8110_2_0;
+	else
+		return -EINVAL;
+}
+EXPORT_SYMBOL(qpnp_adc_get_revid_version);
 
 int32_t qpnp_adc_get_devicetree_data(struct spmi_device *spmi,
 			struct qpnp_adc_drv *adc_qpnp)

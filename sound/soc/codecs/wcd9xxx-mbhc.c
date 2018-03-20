@@ -1004,7 +1004,7 @@ static short __wcd9xxx_codec_sta_dce(struct wcd9xxx_mbhc *mbhc, int dce,
 		usleep_range(mbhc->mbhc_data.t_sta_dce,
 			     mbhc->mbhc_data.t_sta_dce);
 		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_EN_CTL, 0x4);
-		usleep_range(mbhc->mbhc_data.t_dce, mbhc->mbhc_data.t_dce);
+		usleep_range((mbhc->mbhc_data.t_dce-2500), (mbhc->mbhc_data.t_dce-2500));
 		bias_value = wcd9xxx_read_dce_result(codec);
 	} else {
 		snd_soc_update_bits(codec, WCD9XXX_A_CDC_MBHC_CLK_CTL, 0x8,
@@ -2893,7 +2893,7 @@ static void wcd9xxx_swch_irq_handler(struct wcd9xxx_mbhc *mbhc)
 	bool insert;
 	bool is_removed = false;
 	struct snd_soc_codec *codec = mbhc->codec;
-
+	int i=0;
 	pr_debug("%s: enter\n", __func__);
 
 	mbhc->in_swch_irq_handler = true;
@@ -2901,6 +2901,18 @@ static void wcd9xxx_swch_irq_handler(struct wcd9xxx_mbhc *mbhc)
 	usleep_range(SWCH_IRQ_DEBOUNCE_TIME_US, SWCH_IRQ_DEBOUNCE_TIME_US);
 
 	WCD9XXX_BCL_LOCK(mbhc->resmgr);
+
+	
+	for(i=0;i<8;i++)
+	{
+		if(!wcd9xxx_swch_level_remove(mbhc))
+			{
+			msleep(100);
+			if(wcd9xxx_swch_level_remove(mbhc))
+				goto exit;
+			}	
+	}
+	
 
 	/* cancel pending button press */
 	if (wcd9xxx_cancel_btn_work(mbhc))
@@ -2976,6 +2988,16 @@ static void wcd9xxx_swch_irq_handler(struct wcd9xxx_mbhc *mbhc)
 		}
 	}
 exit:
+
+	if(wcd9xxx_swch_level_remove(mbhc))
+	{
+		wcd9xxx_insert_detect_setup(mbhc, true);
+	}
+	else
+	{
+	
+		wcd9xxx_insert_detect_setup(mbhc, false);
+	}
 	mbhc->in_swch_irq_handler = false;
 	WCD9XXX_BCL_UNLOCK(mbhc->resmgr);
 	pr_debug("%s: leave\n", __func__);
@@ -3002,6 +3024,7 @@ static irqreturn_t wcd9xxx_mech_plug_detect_irq(int irq, void *data)
 
 static int wcd9xxx_is_false_press(struct wcd9xxx_mbhc *mbhc)
 {
+#if 0
 	s16 mb_v;
 	int i = 0;
 	int r = 0;
@@ -3044,6 +3067,10 @@ static int wcd9xxx_is_false_press(struct wcd9xxx_mbhc *mbhc)
 	}
 
 	return r;
+#else
+	return 0;
+#endif
+	
 }
 
 /* called under codec_resource_lock acquisition */
@@ -3271,12 +3298,18 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 		} else {
 			pr_debug("%s: Button is released without resume",
 				 __func__);
+
+#if 1
 			if (mbhc->update_z) {
 				wcd9xxx_update_z(mbhc);
-				dce_z = mbhc->mbhc_data.dce_z;
-				sta_z = mbhc->mbhc_data.sta_z;
-				mbhc->update_z = true;
+				mbhc->update_z = false;
 			}
+#else
+wcd9xxx_update_z(mbhc);
+
+#endif
+
+			
 			stamv = __wcd9xxx_codec_sta_dce_v(mbhc, 0, sta, sta_z,
 						mbhc->mbhc_data.micb_mv);
 			if (vddio)
@@ -3298,13 +3331,15 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 	for (meas = 1; ((d->n_btn_meas) && (meas < (d->n_btn_meas + 1)));
 	     meas++)
 		dce[meas] = wcd9xxx_codec_sta_dce(mbhc, 1, false);
-
+#if 1
 	if (mbhc->update_z) {
 		wcd9xxx_update_z(mbhc);
-		dce_z = mbhc->mbhc_data.dce_z;
-		sta_z = mbhc->mbhc_data.sta_z;
-		mbhc->update_z = true;
+		mbhc->update_z = false;
 	}
+#else
+wcd9xxx_update_z(mbhc);
+
+#endif
 
 	stamv = __wcd9xxx_codec_sta_dce_v(mbhc, 0, sta, sta_z,
 					  mbhc->mbhc_data.micb_mv);
@@ -3381,6 +3416,23 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 			wcd9xxx_unlock_sleep(core_res);
 		}
 	} else {
+
+		
+		btn_det = WCD9XXX_MBHC_CAL_BTN_DET_PTR(calibration);
+		v_btn_high = wcd9xxx_mbhc_cal_btn_det_mp(btn_det,
+							   MBHC_BTN_DET_V_BTN_HIGH);
+		WARN_ON(btn >= btn_det->num_btn);
+		/* reprogram release threshold to catch voltage ramp up early */
+		wcd9xxx_update_rel_threshold(mbhc, v_btn_high[6]);
+		
+		mask = wcd9xxx_get_button_mask(6);
+		mbhc->buttons_pressed |= mask;
+		wcd9xxx_lock_sleep(core_res);
+		if (schedule_delayed_work(&mbhc->mbhc_btn_dwork,
+					  msecs_to_jiffies(400)) == 0) {
+			WARN(1, "Button pressed twice without release event\n");
+			wcd9xxx_unlock_sleep(core_res);
+		}
 		pr_debug("%s: bogus button press, too short press?\n",
 			 __func__);
 	}
@@ -3417,18 +3469,23 @@ static irqreturn_t wcd9xxx_release_handler(int irq, void *data)
 					pr_debug("%s: Switch irq kicked in, ignore\n",
 						 __func__);
 				} else {
-					pr_debug("%s: Reporting btn press\n",
-						 __func__);
-					wcd9xxx_jack_report(mbhc,
-							 &mbhc->button_jack,
-							 mbhc->buttons_pressed,
-							 mbhc->buttons_pressed);
-					pr_debug("%s: Reporting btn release\n",
-						 __func__);
-					wcd9xxx_jack_report(mbhc,
-						      &mbhc->button_jack,
-						      0, mbhc->buttons_pressed);
-					waitdebounce = false;
+				
+					if (mbhc->buttons_pressed&(SND_JACK_BTN_0|SND_JACK_BTN_3|SND_JACK_BTN_7))
+						{
+							pr_debug("%s: Reporting btn press\n",
+								 __func__);
+							wcd9xxx_jack_report(mbhc,
+									 &mbhc->button_jack,
+									 mbhc->buttons_pressed,
+									 mbhc->buttons_pressed);
+							pr_debug("%s: Reporting btn release\n",
+								 __func__);
+							wcd9xxx_jack_report(mbhc,
+								      &mbhc->button_jack,
+								      0, mbhc->buttons_pressed);
+							waitdebounce = false;
+						}
+					
 				}
 			}
 		}
@@ -4612,6 +4669,15 @@ int wcd9xxx_mbhc_init(struct wcd9xxx_mbhc *mbhc, struct wcd9xxx_resmgr *resmgr,
 		}
 
 		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_7,
+				       KEY_VOLUMEDOWN);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-7\n",
+				__func__);
+			return ret;
+		}
+
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
 				       SND_JACK_BTN_0,
 				       KEY_MEDIA);
 		if (ret) {
@@ -4619,6 +4685,17 @@ int wcd9xxx_mbhc_init(struct wcd9xxx_mbhc *mbhc, struct wcd9xxx_resmgr *resmgr,
 				__func__);
 			return ret;
 		}
+
+		ret = snd_jack_set_key(mbhc->button_jack.jack,
+				       SND_JACK_BTN_3,
+				       KEY_VOLUMEUP);
+		if (ret) {
+			pr_err("%s: Failed to set code for btn-3\n",
+				__func__);
+			return ret;
+		}
+
+		
 
 		INIT_DELAYED_WORK(&mbhc->mbhc_firmware_dwork,
 				  wcd9xxx_mbhc_fw_read);

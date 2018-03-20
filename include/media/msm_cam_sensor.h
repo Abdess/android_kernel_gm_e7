@@ -40,11 +40,10 @@
 #define MAX_ACTUATOR_REGION 5
 #define MAX_ACTUATOR_INIT_SET 12
 #define MAX_ACTUATOR_REG_TBL_SIZE 8
-#define MAX_ACTUATOR_AF_TOTAL_STEPS 1024
+#define MAX_ACTUATOR_AF_TOTAL_STEPS 1024 
 
 #define MOVE_NEAR 0
 #define MOVE_FAR  1
-
 #define MSM_ACTUATOR_MOVE_SIGNED_FAR -1
 #define MSM_ACTUATOR_MOVE_SIGNED_NEAR  1
 
@@ -52,11 +51,6 @@
 
 #define MAX_AF_ITERATIONS 3
 #define MAX_NUMBER_OF_STEPS 47
-
-typedef enum sensor_stats_type {
-        YRGB,
-        YYYY,
-} sensor_stats_type_t;
 
 enum flash_type {
 	LED_FLASH = 1,
@@ -452,12 +446,11 @@ enum msm_actuator_cfg_type_t {
 	CFG_SET_DEFAULT_FOCUS,
 	CFG_SET_POSITION,
 	CFG_MOVE_FOCUS,
-        CFG_ACTUATOR_POWERDOWN,
+	CFG_ACTUATOR_POWERDOWN, 
 };
 
 enum actuator_type {
 	ACTUATOR_VCM,
-        ACTUATOR_OIS,
 	ACTUATOR_PIEZO,
 };
 
@@ -469,11 +462,6 @@ enum msm_actuator_data_type {
 enum msm_actuator_addr_type {
 	MSM_ACTUATOR_BYTE_ADDR = 1,
 	MSM_ACTUATOR_WORD_ADDR,
-};
-
-enum msm_actuator_i2c_operation {
-        MSM_ACT_WRITE = 0,
-        MSM_ACT_POLL,
 };
 
 struct reg_settings_t {
@@ -551,6 +539,7 @@ enum af_camera_name {
 	ACTUATOR_MAIN_CAM_3,
 	ACTUATOR_MAIN_CAM_4,
 	ACTUATOR_MAIN_CAM_5,
+	ACTUATOR_MAIN_CAM_6,
 	ACTUATOR_WEB_CAM_0,
 	ACTUATOR_WEB_CAM_1,
 	ACTUATOR_WEB_CAM_2,

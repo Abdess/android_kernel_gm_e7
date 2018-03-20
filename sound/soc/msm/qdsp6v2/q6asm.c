@@ -650,6 +650,7 @@ int q6asm_audio_client_buf_free(unsigned int dir,
 
 		while (cnt >= 0) {
 			if (port->buf[cnt].data) {
+				if (!rc)
 				msm_audio_ion_free(port->buf[cnt].client,
 						   port->buf[cnt].handle);
 				port->buf[cnt].client = NULL;
@@ -697,6 +698,8 @@ int q6asm_audio_client_buf_free_contiguous(unsigned int dir,
 			(void *)&port->buf[0].phys,
 			(void *)port->buf[0].client,
 			(void *)port->buf[0].handle);
+		
+		if (!rc)
 		msm_audio_ion_free(port->buf[0].client, port->buf[0].handle);
 		port->buf[0].client = NULL;
 		port->buf[0].handle = NULL;
@@ -1129,11 +1132,20 @@ static int32_t q6asm_srvc_callback(struct apr_client_data *data, void *priv)
 		switch (payload[0]) {
 		case ASM_CMD_SHARED_MEM_MAP_REGIONS:
 		case ASM_CMD_SHARED_MEM_UNMAP_REGIONS:
-		case ASM_CMD_ADD_TOPOLOGIES:
+
+
 			if (payload[1] != 0) {
 				pr_err("%s: cmd = 0x%x returned error = 0x%x sid:%d\n",
 					__func__, payload[0], payload[1], sid);
+				if (payload[0] == ASM_CMD_SHARED_MEM_UNMAP_REGIONS)
+				atomic_set(&ac->unmap_cb_success, 0);
+			} else {
+
+					if (payload[0] == ASM_CMD_SHARED_MEM_UNMAP_REGIONS)
+						atomic_set(&ac->unmap_cb_success, 1);
+
 			}
+
 
 			if (atomic_read(&ac->cmd_state)) {
 				atomic_set(&ac->cmd_state, 0);
@@ -3121,8 +3133,12 @@ int q6asm_memory_unmap(struct audio_client *ac, uint32_t buf_add, int dir)
 	rc = wait_event_timeout(ac->cmd_wait,
 			(atomic_read(&ac->cmd_state) == 0), 5 * HZ);
 	if (!rc) {
-		pr_err("timeout. waited for memory_unmap\n");
-		rc = -EINVAL;
+		pr_err("%s timeout. waited for memory_unmap\n", __func__);
+		rc = -ETIMEDOUT;
+		goto fail_cmd;
+		} else if (atomic_read(&ac->unmap_cb_success) == 0) {
+		pr_err("%s Error in mem unmap callback\n", __func__);
+		rc = -EINVAL;		
 		goto fail_cmd;
 	}
 
@@ -3301,7 +3317,13 @@ static int q6asm_memory_unmap_regions(struct audio_client *ac, int dir)
 	rc = wait_event_timeout(ac->cmd_wait,
 			(atomic_read(&ac->cmd_state) == 0), 5*HZ);
 	if (!rc) {
-		pr_err("timeout. waited for memory_unmap\n");
+		
+		pr_err("%s timeout. waited for memory_unmap\n", __func__);
+		rc = -ETIMEDOUT;
+		goto fail_cmd;
+		} else if (atomic_read(&ac->unmap_cb_success) == 0) {
+		pr_err("%s Error in mem unmap callback\n", __func__);
+		rc = -EINVAL;
 		goto fail_cmd;
 	}
 	rc = 0;

@@ -848,7 +848,10 @@ static int __devinit qpnp_pon_config_init(struct qpnp_pon *pon)
 				cfg->s2_cntl_addr = cfg->s2_cntl2_addr =
 					QPNP_PON_RESIN_S2_CNTL(pon->base);
 			}
-
+			
+			if(0 == cfg->support_reset)
+				qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
+					QPNP_PON_S2_CNTL_EN, 0);
 			break;
 		case PON_CBLPWR:
 			cfg->state_irq = spmi_get_irq_byname(pon->spmi,
