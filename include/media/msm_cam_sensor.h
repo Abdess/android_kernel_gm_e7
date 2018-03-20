@@ -40,10 +40,11 @@
 #define MAX_ACTUATOR_REGION 5
 #define MAX_ACTUATOR_INIT_SET 12
 #define MAX_ACTUATOR_REG_TBL_SIZE 8
-#define MAX_ACTUATOR_AF_TOTAL_STEPS 1024 
+#define MAX_ACTUATOR_AF_TOTAL_STEPS 1024
 
 #define MOVE_NEAR 0
 #define MOVE_FAR  1
+
 #define MSM_ACTUATOR_MOVE_SIGNED_FAR -1
 #define MSM_ACTUATOR_MOVE_SIGNED_NEAR  1
 
@@ -446,7 +447,10 @@ enum msm_actuator_cfg_type_t {
 	CFG_SET_DEFAULT_FOCUS,
 	CFG_SET_POSITION,
 	CFG_MOVE_FOCUS,
-	CFG_ACTUATOR_POWERDOWN, 
+	CFG_ACTUATOR_POWERDOWN,
+#ifdef GN_MACH_MSM8974_NBL8910A_CAMERA_SUPPORT
+	CFG_SET_OIS_MODE,//gionee zhaocuiqin add for ois mode 20140626
+#endif
 };
 
 enum actuator_type {
@@ -545,6 +549,15 @@ enum af_camera_name {
 	ACTUATOR_WEB_CAM_2,
 };
 
+#ifdef GN_MACH_MSM8974_NBL8910A_CAMERA_SUPPORT
+//gionee zhaocuiqin add for ois mode begin 20140626
+enum ois_camera_mode {
+	Ois_Prev_ACT_Mode,
+	Ois_Cap_S2_Mode,
+	Ois_Video_Move_Mode,
+};
+//gionee zhaocuiqin add for ois mode end 20140626
+#endif
 
 struct msm_actuator_set_position_t {
 	uint16_t number_of_steps;
@@ -561,6 +574,9 @@ struct msm_actuator_cfg_data {
 		struct msm_actuator_get_info_t get_info;
 		struct msm_actuator_set_position_t setpos;
 		enum af_camera_name cam_name;
+#ifdef GN_MACH_MSM8974_NBL8910A_CAMERA_SUPPORT
+		enum ois_camera_mode ois_mode;//gionee zhaocuiqin add for ois mode 20140626
+#endif
 	} cfg;
 };
 

@@ -36,8 +36,16 @@
 #define VFE40_8x26_VERSION 0x20000013
 #define VFE40_8x26V2_VERSION 0x20010014
 
+//Gionee zhaocuiqin for CR01398298 20141124 begin
+//#define VFE40_BURST_LEN 1
+//#define VFE40_STATS_BURST_LEN 1
+#ifndef GN_U800_CAMERA_SUPPORT
+#define VFE40_BURST_LEN 2
+#else
 #define VFE40_BURST_LEN 3
+#endif
 #define VFE40_STATS_BURST_LEN 2
+//Gionee zhaocuiqin for CR01398298 20141124 end
 #define VFE40_UB_SIZE 1536
 #define VFE40_EQUAL_SLICE_UB 228
 #define VFE40_WM_BASE(idx) (0x6C + 0x24 * idx)

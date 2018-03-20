@@ -13,18 +13,20 @@
 #include "msm_sensor.h"
 #include <linux/delay.h>
 #define GN_SUNNY_OV4688_SENSOR_NAME "gn_sunny_ov4688"
-#define RG_TYPICAL 0xE7	//0x138    
+#define RG_TYPICAL 0xE7	//0x138    modify typical value,  tanrifei, 20131216.
 #define BG_TYPICAL 0x10F //0x127
 DEFINE_MSM_MUTEX(gn_sunny_ov4688_mut);
-static struct gn_sunny_ov4688_otp_struct *current_otp;
-#ifdef CONFIG_GN_Q_BSP_DEVICE_TYPE_CHECK_SUPPORT
+//Gionee liusb 20140312 add for device type start
+#if defined(CONFIG_GN_Q_BSP_DEVICE_TYPE_CHECK_SUPPORT)
 #include <linux/gn_device_check.h>
 #endif
-#ifdef CONFIG_GN_Q_BSP_DEVICE_TYPE_CHECK_SUPPORT
+#if defined(CONFIG_GN_Q_BSP_DEVICE_TYPE_CHECK_SUPPORT)
 extern int gn_set_device_info(struct gn_device_info gn_dev_info);
 static struct gn_device_info gn_cameradev_info;
 #endif
+//Gionee liusb 20140312 add for device type end
 static struct msm_sensor_ctrl_t gn_sunny_ov4688_s_ctrl;
+//GIONEE_DRV:modify by liushengbin for CR00909531,20130927 start
 static struct msm_sensor_power_setting gn_sunny_ov4688_power_setting[] = {
 	{
 		.seq_type = SENSOR_VREG,
@@ -44,7 +46,12 @@ static struct msm_sensor_power_setting gn_sunny_ov4688_power_setting[] = {
 		.config_val = GPIO_OUT_HIGH,
 		.delay = 5,
 	},
-	
+	{
+		.seq_type = SENSOR_VREG,
+		.seq_val = CAM_VDIG,   //SUB DVDD GPIO POWER
+		.config_val = 0,
+		.delay = 5,
+	},
 	{
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_STANDBY,
@@ -83,6 +90,7 @@ static struct msm_sensor_power_setting gn_sunny_ov4688_power_setting[] = {
 		.delay = 0,
 	},
 };
+//GIONEE_DRV:modify by liushengbin for CR00909531,20130927 end
 
 static struct v4l2_subdev_info gn_sunny_ov4688_subdev_info[] = {
 	{
@@ -129,6 +137,7 @@ static struct platform_driver gn_sunny_ov4688_platform_driver = {
 		.of_match_table = gn_sunny_ov4688_dt_match,
 	},
 };
+//Gionee liushengbin 20131108 modify for otp feature start
 static void gn_sunny_ov4688_write_cmos_sensor(uint32_t addr, uint16_t value)
 {
     gn_sunny_ov4688_s_ctrl.sensor_i2c_client->i2c_func_tbl->i2c_write(
@@ -392,10 +401,12 @@ int update_awb_gain(int R_gain, int G_gain, int B_gain)
 		gn_sunny_ov4688_write_cmos_sensor(0x501C, B_gain>>8);
 		gn_sunny_ov4688_write_cmos_sensor(0x501D, B_gain & 0x00ff);
 	}
+//Gionee <zhuangxiaojian> <2014-03-12> modify for CR01090346 begin
 #ifdef ORIGINAL_VERSION
 #else
 	gn_sunny_ov4688_write_cmos_sensor(0x5000, 0xf3);
 #endif
+//Gionee <zhuangxiaojian> <2014-03-12> modify for CR01090346 end
 	
 	return 1;
 }
@@ -492,6 +503,7 @@ static struct gn_otp_sensor_fn_t gn_otp_func = {
     .gn_sensor_otp_support = update_otp_wb,
 };
 
+//Gionee liushengbin 20131108 modify for otp feature end
 
 
 static int32_t gn_sunny_ov4688_platform_probe(struct platform_device *pdev)
@@ -507,16 +519,17 @@ static int __init gn_sunny_ov4688_init_module(void)
 {
 	int32_t rc = 0;
 	pr_info("%s:%d\n", __func__, __LINE__);
-	current_otp = kzalloc(sizeof(struct gn_sunny_ov4688_otp_struct),GFP_KERNEL);
 	rc = platform_driver_probe(&gn_sunny_ov4688_platform_driver,
 		gn_sunny_ov4688_platform_probe);
 	if (!rc){
-	#ifdef CONFIG_GN_Q_BSP_DEVICE_TYPE_CHECK_SUPPORT
+	//Gionee liusb 20140312 add for device type start
+	#if defined(CONFIG_GN_Q_BSP_DEVICE_TYPE_CHECK_SUPPORT)
 		gn_cameradev_info.gn_dev_type = GN_DEVICE_TYPE_FRONT_CAM;
 		memcpy(gn_cameradev_info.name, "sunny_ov4688",sizeof("sunny_ov4688"));
 		memcpy(gn_cameradev_info.vendor,"sunny_ov4688",sizeof("sunny_ov4688"));
 		gn_set_device_info(gn_cameradev_info);
 	#endif
+	//Gionee liusb 20140312 add for device type end
 		return rc;
 	}
 	pr_err("%s:%d rc %d\n", __func__, __LINE__, rc);
@@ -531,7 +544,6 @@ static void __exit gn_sunny_ov4688_exit_module(void)
 		platform_driver_unregister(&gn_sunny_ov4688_platform_driver);
 	} else
 		i2c_del_driver(&gn_sunny_ov4688_i2c_driver);
-	kzfree(current_otp);
 	return;
 }
 
@@ -542,7 +554,7 @@ static struct msm_sensor_ctrl_t gn_sunny_ov4688_s_ctrl = {
 	.msm_sensor_mutex = &gn_sunny_ov4688_mut,
 	.sensor_v4l2_subdev_info = gn_sunny_ov4688_subdev_info,
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(gn_sunny_ov4688_subdev_info),
-	.gn_otp_func_tbl = &gn_otp_func, 
+	.gn_otp_func_tbl = &gn_otp_func, //Gionee liushengbin 20131108 modify for otp feature
 };
 module_init(gn_sunny_ov4688_init_module);
 module_exit(gn_sunny_ov4688_exit_module);

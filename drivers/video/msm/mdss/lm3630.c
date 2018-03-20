@@ -18,9 +18,11 @@
 #include <linux/clk.h>
 #include "../../../staging/android/timed_output.h"
 #include <linux/of_gpio.h>
+#ifdef CONFIG_GN_Q_BSP_U810_LCD_TPS65132_SUPPORT
 #include "mdss_dsi.h"
 
 int lcd_vendor;
+#endif
 bool sleep = 1;
 static struct i2c_client *i2c_client = NULL;
 #include <linux/leds.h>
@@ -30,7 +32,7 @@ static int lm3630_write_reg(u8 addr, u8 para);
 static void lm3630_change_mode(int mode)
 {
 	if (mode == 0)
-		lm3630_write_reg(0x01,0x08);// 0x08 disable cabc
+		lm3630_write_reg(0x01,0x08);// 0x09 disable cabc
 	else if(mode == 1)
 		lm3630_write_reg(0x01,0x09);// 0x09 enable cabc
 	else
@@ -88,6 +90,9 @@ int cabc_change = 0;
 void set_backlight_lm3630(unsigned int level)
 {
 	u8 para;
+#ifdef CONFIG_GN_Q_BSP_NBL8910A_LCD_TPS65132_SUPPORT
+	para = (u8) (level); //for sharp lcd ,
+#else
 	if(lcd_vendor == 1)
 		para = (u8) ((level*17)/20);
 	else if(lcd_vendor == 2)
@@ -101,10 +106,11 @@ void set_backlight_lm3630(unsigned int level)
 		printk("%s:lcd detect error\n",__func__);
 		return;
 	}
+#endif
 	printk("mdss:backlight level = %d\n",para);
 	if(para == 0)
 	{
-		printk("mdss:backlight level = 0\n"); 
+		printk("mdss:backlight level = 0\n");//add for check backlight on or not for cr 00922981 
 		if(sleep == 1)
 			return ;
 	
@@ -179,7 +185,7 @@ static int __devinit lm3630_probe(struct i2c_client *client,
         	return err;
     	}
 
-
+#ifdef CONFIG_GN_Q_BSP_U810_LCD_TPS65132_SUPPORT
 	if(strstr(saved_command_line, "jdi") != NULL)
 	{
 		lcd_vendor = 1;
@@ -195,6 +201,7 @@ static int __devinit lm3630_probe(struct i2c_client *client,
 	}
 	else
 		lcd_vendor = 0;
+#endif
 	if (led_classdev_register(&client->dev, &backlight_cabc))
 		pr_err("led_classdev_register failed\n");
     	printk("lm3630 probe done\n");
@@ -230,7 +237,9 @@ static struct i2c_driver lm3630_driver = {
 
 static int __init lm3630_init(void)
 {
+#ifdef CONFIG_GN_Q_BSP_U810_LCD_TPS65132_SUPPORT
 	printk("lm3630 registered on i2c!\n");
+#endif
 	return i2c_add_driver(&lm3630_driver);
 }
 

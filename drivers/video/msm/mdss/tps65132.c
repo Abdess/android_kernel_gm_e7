@@ -38,38 +38,57 @@ static int tps65132_i2c_txdata(char *txdata, int length)
 
 	return ret;
 }
-
+#ifdef CONFIG_GN_Q_BSP_NBL8910A_LCD_TPS65132_SUPPORT
+void tps65132_write_reg(char buf[])
+#else
 static int tps65132_write_reg(u8 addr, u8 para)
+#endif
 {
+#ifdef CONFIG_GN_Q_BSP_U810_LCD_TPS65132_SUPPORT
     	u8 buf[2];
+#endif
     	int ret = -1;
 
+#ifdef CONFIG_GN_Q_BSP_U810_LCD_TPS65132_SUPPORT
    	buf[0] = addr;
     	buf[1] = para;
+#endif
     	ret = tps65132_i2c_txdata(buf, 2);
     	if (ret < 0) {
         	pr_err("write reg failed! %#x ret: %d", buf[0], ret);
+#ifdef CONFIG_GN_Q_BSP_U810_LCD_TPS65132_SUPPORT
         	return -1;
+#endif
     	}
-    
+#ifdef CONFIG_GN_Q_BSP_U810_LCD_TPS65132_SUPPORT
     	return 0;
+#endif
 }
 
+#ifdef CONFIG_GN_Q_BSP_NBL8910A_LCD_TPS65132_SUPPORT
+void tps65132_set_vol(char vol_buf[])
+#else
 void set_vol_tps65132_positive(void )
+#endif
 {
-
+#ifdef CONFIG_GN_Q_BSP_NBL8910A_LCD_TPS65132_SUPPORT
+	tps65132_write_reg(vol_buf); 
+#else
 	tps65132_write_reg(0x00,0x0a);  //0a = 5.0 v
 }
 
 void set_vol_tps65132_nagetive(void )
 {
 	tps65132_write_reg(0x01,0x0a);  //0a  = 5.0 v 01 = nagetive
+#endif
 }
 
 static int __devinit tps65132_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
+#ifdef CONFIG_GN_Q_BSP_U810_LCD_TPS65132_SUPPORT
 	int err = 0;
+#endif
 	static const char *tps_ic_name;
    	i2c_client = client;
 
@@ -79,7 +98,7 @@ static int __devinit tps65132_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 	printk("tps ic name = %s\n",tps_ic_name);
-
+#ifdef CONFIG_GN_Q_BSP_U810_LCD_TPS65132_SUPPORT
     	msleep(10);  
 
   	err =  tps65132_write_reg(0x00,0x0a);
@@ -91,7 +110,7 @@ static int __devinit tps65132_probe(struct i2c_client *client,
         	printk( " fail to write tpd cfg %d\n", err );
         	return err;
     	}
-
+#endif
     	printk("tps65132 probe done\n");
 
     	return 0;

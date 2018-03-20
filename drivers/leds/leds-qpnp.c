@@ -2176,6 +2176,8 @@ static ssize_t blink_store(struct device *dev,
 	}
 	return count;
 }
+
+//Gionee liujiang 2013-10-15 modify for CR00921379 start
 static DEVICE_ATTR(led_mode, 0666, NULL, led_mode_store);
 static DEVICE_ATTR(strobe, 0666, NULL, led_strobe_type_store);
 static DEVICE_ATTR(pwm_us, 0666, NULL, pwm_us_store);
@@ -2186,6 +2188,7 @@ static DEVICE_ATTR(ramp_step_ms, 0666, NULL, ramp_step_ms_store);
 static DEVICE_ATTR(lut_flags, 0666, NULL, lut_flags_store);
 static DEVICE_ATTR(duty_pcts, 0666, NULL, duty_pcts_store);
 static DEVICE_ATTR(blink, 0666, NULL, blink_store);
+//Gionee liujiang 2013-10-15 modify for CR00921379 end
 
 static struct attribute *led_attrs[] = {
 	&dev_attr_led_mode.attr,

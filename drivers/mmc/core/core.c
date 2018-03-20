@@ -45,13 +45,6 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 
-#ifdef CONFIG_OPPO_DEVICE_N3
-extern void mmc_sd_remove(struct mmc_host *host);
-
-//Zhilong.Zhang@OnlineRd.Driver, 2014/09/19, Add for detect tf card
-#include <linux/gpio.h>
-#endif
-
 #define CREATE_TRACE_POINTS
 #include <trace/events/mmc.h>
 
@@ -1281,8 +1274,13 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 	/*
 	 * SD cards use a 100 multiplier rather than 10
 	 */
+//Gionee chuqf 2014-4-18 add enforce emmc timeout begin
+#if defined(CONFIG_GN_Q_BSP_ENFORCE_EMMC_TIMEOUT_SUPPORT)
+	mult = mmc_card_sd(card) ? 100 : 50;
+#else
 	mult = mmc_card_sd(card) ? 100 : 10;
-
+#endif
+//Gionee chuqf 2014-4-18 add enforce emmc timeout end
 	/*
 	 * Scale up the multiplier (and therefore the timeout) by
 	 * the r2w factor for writes.
@@ -1304,6 +1302,21 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 			timeout_us += data->timeout_clks * 1000 /
 				(mmc_host_clk_rate(card->host) / 1000);
 
+//Gionee chuqf 2014-4-18 add enforce emmc timeout begin
+#if defined(CONFIG_GN_Q_BSP_ENFORCE_EMMC_TIMEOUT_SUPPORT)
+		if (data->flags & MMC_DATA_WRITE)
+			/*
+			 * The MMC spec "It is strongly recommended
+			 * for hosts to implement more than 500ms
+			 * timeout value even if the card indicates
+			 * the 250ms maximum busy length."  Even the
+			 * previous value of 300ms is known to be
+			 * insufficient for some cards.
+			 */
+			limit_us = 5000000;
+		else
+			limit_us = 300000;
+#else
 		if (data->flags & MMC_DATA_WRITE)
 			/*
 			 * The MMC spec "It is strongly recommended
@@ -1316,7 +1329,8 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 			limit_us = 3000000;
 		else
 			limit_us = 100000;
-
+#endif
+//Gionee chuqf 2014-4-18 add enforce emmc timeout end
 		/*
 		 * SDHC cards always use these fixed values.
 		 */
@@ -3199,46 +3213,11 @@ int mmc_detect_card_removed(struct mmc_host *host)
 }
 EXPORT_SYMBOL(mmc_detect_card_removed);
 
-//Zhilong.Zhang@OnlineRd.Driver, 2014/09/19, Add for detect tf card
-#ifdef CONFIG_OPPO_DEVICE_N3
-struct _mmc_cd_gpio {
-	unsigned int gpio;
-	char label[0];
-	bool status;
-};
-
-static int mmc_cd_get_tf_status(struct mmc_host *host)
-{
-	int ret = -ENOSYS;
-	struct _mmc_cd_gpio *cd = host->hotplug.handler_priv;
-
-	if (!cd || !gpio_is_valid(cd->gpio))
-		goto out;
-
-	ret = !gpio_get_value_cansleep(cd->gpio) ^
-		!!(host->caps2 & MMC_CAP2_CD_ACTIVE_HIGH);
-out:
-	return ret;
-}
-
-extern void removed_tf_card(struct mmc_host *host);
-
-#endif
-
 void mmc_rescan(struct work_struct *work)
 {
 	struct mmc_host *host =
 		container_of(work, struct mmc_host, detect.work);
 	bool extend_wakelock = false;
-//Zhilong.Zhang@OnlineRd.Driver, 2014/09/19, Add for detect tf card
-#ifdef CONFIG_OPPO_DEVICE_N3
-	int status;
-	status = mmc_cd_get_tf_status(host);
-	
-	if(!status && !host->bus_dead) {
-		mmc_schedule_delayed_work(&host->detect, 2 * HZ);
-	}	
-#endif
 
 	if (host->rescan_disable)
 		return;
@@ -3304,16 +3283,6 @@ void mmc_rescan(struct work_struct *work)
 	mmc_release_host(host);
 	mmc_rpm_release(host, &host->class_dev);
  out:
-
-//Zhilong.Zhang@OnlineRd.Driver, 2014/09/19, Add for detect tf card
-#ifdef CONFIG_OPPO_DEVICE_N3
- 	if (mmc_cd_get_tf_status(host) == 0){
-		cancel_delayed_work(&host->detect);
-		if (host && host->card)
-			removed_tf_card(host);
- 	}
-#endif
-
 	/* only extend the wakelock, if suspend has not started yet */
 	if (extend_wakelock && !host->rescan_disable)
 		wake_lock_timeout(&host->detect_wake_lock, HZ / 2);

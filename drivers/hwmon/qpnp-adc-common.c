@@ -45,6 +45,7 @@
    their framework which is 0.1DegC. True resolution of 0.1DegC
    will result in the below table size to increase by 10 times */
 static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
+//Gionee wudp 2013-10-10 add for GBW8901 10K NTC begin
 #if defined(CONFIG_GN_Q_BSP_BATTERY_10K_NTC_SUPPORT)
     {-300,	 1645}, 
     {-200,	 1558}, 
@@ -214,6 +215,7 @@ static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
 	{780,	208},
 	{790,	203}
 #endif
+//Gionee wudp 2013-10-10 add for GBW8901 10K NTC end
 };
 
 static const struct qpnp_vadc_map_pt adcmap_qrd_btm_threshold[] = {

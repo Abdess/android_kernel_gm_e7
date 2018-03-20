@@ -1,5 +1,6 @@
 /* Copyright Statement:
  *
+ *  gionee wanght <wanght@gionee.com> 2012-04-26
  */
 
 #ifndef __GN_DEVICE_CHECK_H__
@@ -40,10 +41,10 @@ enum gn_device_type
 
 struct gn_device_info
 {
-	char     name[GN_DEVICE_NAME_LEN];				
-	char     vendor[GN_DEVICE_VENDOR_LEN];				
-	char     version[GN_DEVICE_VERSION_LEN];			
-	int	    gn_dev_type;								
+	char     name[GN_DEVICE_NAME_LEN];				//gionee device name :such as akm8379
+	char     vendor[GN_DEVICE_VENDOR_LEN];				//gionee device vendor:such as:sumsung
+	char     version[GN_DEVICE_VERSION_LEN];			//gionee device version:such as:v1.01
+	int	    gn_dev_type;								//enum gn_device_type
 };
 
 //#ifdef CUSTOM_KERNEL_LCM

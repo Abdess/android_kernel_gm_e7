@@ -2457,11 +2457,12 @@ static int taiko_codec_enable_lineout(struct snd_soc_dapm_widget *w,
 	struct snd_soc_codec *codec = w->codec;
 	struct taiko_priv *taiko = snd_soc_codec_get_drvdata(codec);
 	u16 lineout_gain_reg;
-	
+//add by zhaocq for audio PA YDA145_EN begin CR00874233
 #ifdef CONFIG_GN_Q_BSP_AUDIO_HEADSET_SUPPORT	
 	struct wcd9xxx_pdata *pdata;
 	pdata = dev_get_platdata(codec->dev->parent);
 #endif
+//add by zhaocq for audio PA YDA145_EN end CR00874233
 
 	pr_debug("%s %d %s\n", __func__, event, w->name);
 
@@ -2486,12 +2487,14 @@ static int taiko_codec_enable_lineout(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
+//add by zhaocq for audio PA YDA145_EN begin CR00874233
 #ifdef CONFIG_GN_Q_BSP_AUDIO_HEADSET_SUPPORT
-	    if ( __gpio_get_value(pdata->pa_gpio) == 0) {
-	        gpio_set_value(pdata->pa_gpio, 1);
-	        pr_debug("%s(): pa_gpio_level = %d\n", __func__, __gpio_get_value(pdata->pa_gpio));
-	    }	
+	if (__gpio_get_value(pdata->pa_gpio) == 0) {
+		gpio_set_value(pdata->pa_gpio, 1);
+		pr_debug("%s(): pa_gpio_level = %d\n", __func__, __gpio_get_value(pdata->pa_gpio));
+	}
 #endif
+//add by zhaocq for audio PA YDA145_EN end CR00874233
 		snd_soc_update_bits(codec, lineout_gain_reg, 0x40, 0x40);
 		break;
 	case SND_SOC_DAPM_POST_PMU:
@@ -2499,22 +2502,29 @@ static int taiko_codec_enable_lineout(struct snd_soc_dapm_widget *w,
 						 WCD9XXX_CLSH_STATE_LO,
 						 WCD9XXX_CLSH_REQ_ENABLE,
 						 WCD9XXX_CLSH_EVENT_POST_PA);
-		pr_debug("%s: sleeping 3 ms after %s PA turn on\n",
+		pr_debug("%s: sleeping 5 ms after %s PA turn on\n",
 				__func__, w->name);
-		usleep_range(3000, 3000);
+		/* Wait for CnP time after PA enable */
+		usleep_range(5000, 5100);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
+//add by zhaocq for audio PA YDA145_EN begin CR00874233
 #ifdef CONFIG_GN_Q_BSP_AUDIO_HEADSET_SUPPORT
-        if ( __gpio_get_value(pdata->pa_gpio) == 1) {
-            gpio_set_value(pdata->pa_gpio, 0);
-            pr_debug("%s(): pa_gpio_level = %d\n", __func__, __gpio_get_value(pdata->pa_gpio));
-        }
+	if (__gpio_get_value(pdata->pa_gpio) == 1) {
+		gpio_set_value(pdata->pa_gpio, 0);
+		pr_debug("%s(): pa_gpio_level = %d\n", __func__, __gpio_get_value(pdata->pa_gpio));
+	}
 #endif
+//add by zhaocq for audio PA YDA145_EN end CR00874233
 		wcd9xxx_clsh_fsm(codec, &taiko->clsh_d,
 						 WCD9XXX_CLSH_STATE_LO,
 						 WCD9XXX_CLSH_REQ_DISABLE,
 						 WCD9XXX_CLSH_EVENT_POST_PA);
 		snd_soc_update_bits(codec, lineout_gain_reg, 0x40, 0x00);
+		pr_debug("%s: sleeping 5 ms after %s PA turn off\n",
+				__func__, w->name);
+		/* Wait for CnP time after PA disable */
+		usleep_range(5000, 5100);
 		break;
 	}
 	return 0;
@@ -7032,23 +7042,21 @@ static int taiko_codec_probe(struct snd_soc_codec *codec)
 					   WCD9XXX_BANDGAP_AUDIO_MODE);
 		WCD9XXX_BG_CLK_UNLOCK(&taiko->resmgr);
 	}
+//add by zhaocq for audio PA YDA145_EN begin CR00874233
 #ifdef CONFIG_GN_Q_BSP_AUDIO_HEADSET_SUPPORT
 	ret = gpio_request(pdata->pa_gpio, "speaker_PA");
-       if (ret < 0) {
+	if (ret < 0) {
 		pr_err("%s: Failed to gpio_request speaker_PA\n",
-			       __func__);
-
-      }
-      ret = gpio_direction_output(pdata->pa_gpio, 1);
-      if (ret < 0) {
+			   __func__);
+	}
+	ret = gpio_direction_output(pdata->pa_gpio, 1);
+	if (ret < 0) {
 		pr_err("%s: speaker_PA direction failed\n",
-			       __func__);
-      }
+			   __func__);
+	}
 	gpio_set_value(pdata->pa_gpio, 0);
 #endif
-#ifdef CONFIG_SND_SOC_ES325
-	es325_remote_add_codec_controls(codec);
-#endif
+//add by zhaocq for audio PA YDA145_EN end CR00874233
 
 	ptr = kmalloc((sizeof(taiko_rx_chs) +
 		       sizeof(taiko_tx_chs)), GFP_KERNEL);

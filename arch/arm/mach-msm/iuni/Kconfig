@@ -1,0 +1,19 @@
+config GN_MACH_IUNI
+	bool
+	depends on ARCH_MSM
+
+menu "Gionee board selection"
+
+config GN_MACH_MSM8974_U810_SUPPORT
+	bool "IUNI U2"
+	select GN_MACH_GIONEE
+	help
+	  Support for the IUNI U2 (U810)
+
+config GN_MACH_MSM8974_NBL8910A_SUPPORT
+	bool "IUNI U3"
+	select GN_MACH_GIONEE
+	help
+	  Support for the IUNI U3 (NBL8910A)
+
+endmenu

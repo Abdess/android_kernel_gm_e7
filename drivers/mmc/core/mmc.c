@@ -289,11 +289,24 @@ static void mmc_select_card_type(struct mmc_card *card)
 			card_type & EXT_CSD_CARD_TYPE_SDR_1_2V))
 		hs_max_dtr = MMC_HS200_MAX_DTR;
 
+//gionee, chuqf, to support hs400, begin
+#if defined(CONFIG_GN_Q_BSP_LK_DISABLE_EMMC_HS400)
+	if ((caps2 & MMC_CAP2_HS400_1_8V &&
+	 card_type & EXT_CSD_CARD_TYPE_HS400_1_8V) ||
+		(caps2 & MMC_CAP2_HS400_1_2V &&
+		 card_type & EXT_CSD_CARD_TYPE_HS400_1_2V)) {
+		hs_max_dtr = MMC_HS200_MAX_DTR;
+		card_type &= ~EXT_CSD_CARD_TYPE_HS400_1_8V;
+		card_type &= ~EXT_CSD_CARD_TYPE_HS400_1_2V;
+	}
+#else
 	if ((caps2 & MMC_CAP2_HS400_1_8V &&
 			card_type & EXT_CSD_CARD_TYPE_HS400_1_8V) ||
 	    (caps2 & MMC_CAP2_HS400_1_2V &&
 			card_type & EXT_CSD_CARD_TYPE_HS400_1_2V))
 		hs_max_dtr = MMC_HS400_MAX_DTR;
+#endif
+//gionee, chuqf, to support hs400, end
 
 	card->ext_csd.hs_max_dtr = hs_max_dtr;
 	card->ext_csd.card_type = card_type;
@@ -1262,13 +1275,7 @@ static int mmc_change_bus_speed(struct mmc_host *host, unsigned long *freq)
 		mmc_set_clock(host, (unsigned int) (*freq));
 	}
 
-#ifndef CONFIG_VENDOR_EDIT
-//Zhilong.Zhang@OnlineRd.Driver, 2014/02/07, Modify for solve 32GB emmc can not boot normal 
-	if ((mmc_card_hs400(card) || mmc_card_hs200(card))
-		&& card->host->ops->execute_tuning) {
-#else /* VENDOR_EDIT */
-	if (mmc_card_hs200(card) && card->host->ops->execute_tuning) {		
-#endif /* VENDOR_EDIT */
+	if (mmc_card_hs200(card) && card->host->ops->execute_tuning) {
 		/*
 		 * We try to probe host driver for tuning for any
 		 * frequency, it is host driver responsibility to

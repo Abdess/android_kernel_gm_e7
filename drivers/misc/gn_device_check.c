@@ -1,4 +1,5 @@
 /* Copyright Statement:
+ *  gionee wanght <wanght@gionee.com> 2012-04-26
  */
 #include <linux/init.h>
 #include <linux/module.h>
@@ -264,6 +265,6 @@ static void __exit gn_device_mod_exit(void)
 module_init(gn_device_mod_init);
 module_exit(gn_device_mod_exit);
 
-MODULE_AUTHOR("<www.gionee.com>");
+MODULE_AUTHOR("andee <andee@gionee.com>");
 MODULE_DESCRIPTION("gn_device_check Driver v0.1");
 MODULE_LICENSE("GPL");

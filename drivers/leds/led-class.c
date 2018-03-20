@@ -24,8 +24,14 @@
 #define LED_BUFF_SIZE 50
 
 static struct class *leds_class;
+
+// Gionee, add for U2 LED Torch Support, start
+#ifdef GN_U800_TORCH_SUPPORT
 extern int32_t CamState;
 #define TORCH_BRITGHNESS 40
+#endif
+// Gionee, add for U2 LED Torch Support, end
+
 static void led_update_brightness(struct led_classdev *led_cdev)
 {
 	if (led_cdev->brightness_get)
@@ -58,10 +64,15 @@ static ssize_t led_brightness_store(struct device *dev,
 	if (count == size) {
 		ret = count;
 
-        if (strcmp(led_cdev->name, "led:flash_torch")) {
-		    if (state == LED_OFF) 
-		        led_trigger_remove(led_cdev);
-		}
+//Gionee wanglei, 2013-11-13, add for LED Torch, start
+	if (strcmp(led_cdev->name, "led:flash_torch")) {
+		if (state == LED_OFF)
+			led_trigger_remove(led_cdev);
+	}
+//Gionee wanglei, 2013-11-13, add for LED Torch, end
+
+// Gionee, add for U2 LED Torch Support, start
+#ifdef GN_U800_TORCH_SUPPORT
           if (0 == CamState)  {
               led_set_brightness(led_cdev, state);
           }
@@ -69,6 +80,10 @@ static ssize_t led_brightness_store(struct device *dev,
               if (TORCH_BRITGHNESS != state)
                   led_set_brightness(led_cdev, state);
           }
+#else
+                  led_set_brightness(led_cdev, state);
+#endif
+// Gionee, add for U2 LED Torch Support, end
 	}
 
 	return ret;

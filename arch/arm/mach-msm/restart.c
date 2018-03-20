@@ -261,14 +261,16 @@ static void msm_restart_prepare(const char *cmd)
 	/* Write download mode flags if restart_mode says so */
 	if (restart_mode == RESTART_DLOAD)
 		set_dload_mode(1);
+
+	/* gionee add for dump switch */
 	else {
 	/* end */
 		/* Kill download mode if master-kill switch is set */
 		if (!download_mode)
 			set_dload_mode(0);
+	/* gionee add for dump switch */
 	}
 	/* end */
-
 #endif
 
 	pm8xxx_reset_pwr_off(1);

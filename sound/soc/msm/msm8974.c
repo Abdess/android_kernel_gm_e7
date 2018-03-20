@@ -121,9 +121,17 @@ static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.mclk_rate = TAIKO_EXT_CLK_RATE,
 	.gpio = 0,
 	.gpio_irq = 0,
+//add by zhaocq for audio headset switch begin
+#ifdef CONFIG_GN_Q_BSP_AUDIO_HEADSET_SUPPORT
 	.gpio_level_insert = 0,
 	.detect_extn_cable = true,
 	.micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET | 1 << MBHC_MICBIAS_ENABLE_REGULAR_HEADSET,
+#else
+	.gpio_level_insert = 1,
+	.detect_extn_cable = true,
+	.micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET,
+#endif
+//add by zhaocq for audio headset switch end
 	.insert_detect = true,
 	.swap_gnd_mic = NULL,
 
@@ -1706,28 +1714,53 @@ void *def_taiko_mbhc_cal(void)
 	S(c[0], 62);
 	S(c[1], 124);
 	S(nc, 1);
-	S(n_meas, 2);
-
+	S(n_meas, 3);
 	S(mbhc_nsc, 11);
-	S(n_btn_meas, 4);
-	S(n_btn_con, 5);
+	S(n_btn_meas, 1);
+	S(n_btn_con, 2);
 	S(num_btn, WCD9XXX_MBHC_DEF_BUTTONS);
-	S(v_btn_press_delta_sta, -800);
-	S(v_btn_press_delta_cic, 0);
+	S(v_btn_press_delta_sta, 100);
+	S(v_btn_press_delta_cic, 50);
 #undef S
 	btn_cfg = WCD9XXX_MBHC_CAL_BTN_DET_PTR(taiko_cal);
 	btn_low = wcd9xxx_mbhc_cal_btn_det_mp(btn_cfg, MBHC_BTN_DET_V_BTN_LOW);
 	btn_high = wcd9xxx_mbhc_cal_btn_det_mp(btn_cfg,
 					       MBHC_BTN_DET_V_BTN_HIGH);
-	btn_low[0] = -1500;
-    btn_high[0] = 92;
-	btn_low[1] = 93;
-    btn_high[1] = 95;
-	btn_low[2] = 96;
-	btn_high[2] = 97;
-	btn_low[3] = 98;
-	btn_high[3] = 187;
-	btn_low[4] = 188;
+	
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 begin
+#ifdef CONFIG_GN_Q_BSP_AUDIO_MBHC_CALIBRATION
+/******************************************************
+Adjust the range for U2 multi function headset
+Hook Button ADC: 	65-68
++ Button ADC: 		242-245
+- Button ADC: 		582-586
+*******************************************************/
+	btn_low[0] = -50;
+	btn_high[0] = 100;
+	btn_low[1] = 101;
+	btn_high[1] = 350;
+	btn_low[2] = 351;
+	btn_high[2] = 595;
+	btn_low[3] = 596;
+	btn_high[3] = 597;
+	btn_low[4] = 598;
+	btn_high[4] = 599;
+	btn_low[5] = 600;
+	btn_high[5] = 601;
+	btn_low[6] = 602;
+	btn_high[6] = 603;
+	btn_low[7] = 604;
+	btn_high[7] = 605;
+#else
+	btn_low[0] = -50;
+	btn_high[0] = 20;
+	btn_low[1] = 21;
+	btn_high[1] = 61;
+	btn_low[2] = 62;
+	btn_high[2] = 104;
+	btn_low[3] = 105;
+	btn_high[3] = 148;
+	btn_low[4] = 149;
 	btn_high[4] = 189;
 	btn_low[5] = 190;
 	btn_high[5] = 228;
@@ -1735,6 +1768,8 @@ void *def_taiko_mbhc_cal(void)
 	btn_high[6] = 269;
 	btn_low[7] = 270;
 	btn_high[7] = 500;
+#endif
+//Gionee huangzhuolin 20140626 add for U2 Multi-function headset CR01296447 end
 	n_ready = wcd9xxx_mbhc_cal_btn_det_mp(btn_cfg, MBHC_BTN_DET_N_READY);
 	n_ready[0] = 80;
 	n_ready[1] = 68;

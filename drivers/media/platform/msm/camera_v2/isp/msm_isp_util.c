@@ -1009,8 +1009,13 @@ irqreturn_t msm_isp_process_irq(int irq_num, void *data)
 	spin_lock_irqsave(&vfe_dev->tasklet_lock, flags);
 	queue_cmd = &vfe_dev->tasklet_queue_cmd[vfe_dev->taskletq_idx];
 	if (queue_cmd->cmd_used) {
+#ifndef GN_MACH_MSM8974_NBL8910A_CAMERA_SUPPORT
 		pr_err_ratelimited("%s: Tasklet queue overflow: %d\n",
 			__func__, vfe_dev->pdev->id);
+#else
+		pr_err("__debug__: %s: Tasklet queue overflow: %d, error_mask0 = 0x%x, error_mask1 = 0x%x,\n", 
+			__func__, vfe_dev->pdev->id, error_mask0, error_mask1); //modify by Gionee zhaocuiqin for CR01370128 20140830
+#endif
 		list_del(&queue_cmd->list);
 	} else {
 		atomic_add(1, &vfe_dev->irq_cnt);

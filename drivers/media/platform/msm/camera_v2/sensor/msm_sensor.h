@@ -41,7 +41,7 @@ enum msm_sensor_state_t {
 	MSM_SENSOR_POWER_DOWN,
 	MSM_SENSOR_POWER_UP,
 };
-
+#ifdef GN_U800_CAMERA_SUPPORT
 struct gn_sunny_ov4688_otp_struct   
 {
     int16_t customer_id;
@@ -75,7 +75,28 @@ struct gn_sunny_ov8835_otp_struct
 struct gn_otp_sensor_fn_t {
         int (*gn_sensor_otp_support)(struct msm_sensor_ctrl_t *s_ctrl);
 };
-
+#endif
+#ifdef GN_MACH_MSM8974_NBL8910A_CAMERA_SUPPORT
+//Gionee liushengbin modify for ov4688 otp feature start
+struct gn_sunny_ov4688_otp_struct {
+	int module_integrator_id;
+	int lens_id;
+	int production_year;
+	int production_month;
+	int production_day;
+	int rg_ratio;
+	int bg_ratio;
+	int light_rg;
+	int light_bg;
+	int user_data[5];
+	int VCM_start;
+	int VCM_end;
+};
+struct gn_otp_sensor_fn_t {
+	int (*gn_sensor_otp_support)(struct msm_sensor_ctrl_t *s_ctrl);
+};
+//Gionee liushengbin modify for ov4688 otp feature end
+#endif
 struct msm_sensor_fn_t {
 	int (*sensor_config) (struct msm_sensor_ctrl_t *, void __user *);
 	int (*sensor_power_down)

@@ -27,7 +27,9 @@
 #define CDBG(fmt, args...) do { } while (0)
 #endif
 
+#ifdef GN_U800_CAMERA_SUPPORT
 int32_t CamState = 0;
+#endif
 static int32_t msm_sensor_enable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf)
 {
 	struct v4l2_subdev *i2c_mux_sd =
@@ -1670,8 +1672,10 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 					__LINE__, rc);
 				break;
 			}
-			s_ctrl->sensor_state = MSM_SENSOR_POWER_UP; 
+			s_ctrl->sensor_state = MSM_SENSOR_POWER_UP;
+#ifdef GN_U800_CAMERA_SUPPORT
 			CamState = 1;
+#endif
 			pr_err("%s:%d sensor state %d\n", __func__, __LINE__,
 				s_ctrl->sensor_state);
 		} else {
@@ -1692,21 +1696,23 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			if (s_ctrl->sensordata->misc_regulator)
 				msm_sensor_misc_regulator(s_ctrl, 0);
 
-			rc = s_ctrl->func_tbl->sensor_power_down(
-				s_ctrl);
+			rc = s_ctrl->func_tbl->sensor_power_down(s_ctrl);
 			if (rc < 0) {
 				pr_err("%s:%d failed rc %ld\n", __func__,
 					__LINE__, rc);
 				break;
 			}
-			s_ctrl->sensor_state = MSM_SENSOR_POWER_DOWN; 
+			s_ctrl->sensor_state = MSM_SENSOR_POWER_DOWN;
+#ifdef GN_U800_CAMERA_SUPPORT
 			CamState = 0;
+#endif
 			pr_err("%s:%d sensor state %d\n", __func__, __LINE__,
 				s_ctrl->sensor_state);
 		} else {
 			rc = -EFAULT;
 		}
 		break;
+#ifdef GN_U800_CAMERA_SUPPORT
     case CFG_SET_INIT_SETTING:
          if(s_ctrl->gn_otp_func_tbl && s_ctrl->gn_otp_func_tbl->gn_sensor_otp_support) {
 		 	for (i = 0; i < 3; i ++) {
@@ -1722,6 +1728,23 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			}
 		}
         break;
+#endif
+#ifdef GN_MACH_MSM8974_NBL8910A_CAMERA_SUPPORT
+//Gionee liushengbin 20131108 modify for ov4688 otp start
+	case CFG_SET_INIT_SETTING:
+		if (s_ctrl->gn_otp_func_tbl != NULL) {
+			rc = s_ctrl->gn_otp_func_tbl->gn_sensor_otp_support(s_ctrl);
+			if (rc != 1) {
+				pr_err("%s: %s: sensor otp support failed\n", __func__,
+				s_ctrl->sensordata->sensor_name);
+				return rc;
+			}
+		printk("%s: %s: sensor otp support success\n", __func__,
+		   s_ctrl->sensordata->sensor_name);
+		}
+		break;
+//Gionee liushengbin 20131108 modify for ov4688 otp end
+#endif
 	case CFG_SET_STOP_STREAM_SETTING: {
 		struct msm_camera_i2c_reg_setting *stop_setting =
 			&s_ctrl->stop_setting;
